@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中文打字練習</title>
+    <style>
+        /* --- 基本樣式 --- */
+        body {
+            background-color: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        .container {
+            width: 800px;
+            max-width: 90%;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* --- 統計數據區 --- */
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            font-size: 1.2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item .label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .stat-item .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        /* --- 文本顯示區 --- */
+        #text-display {
+            font-size: 1.8rem;
+            letter-spacing: 4px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+            text-align: justify;
+        }
+
+        /* --- 字元樣式 --- */
+        #text-display span {
+            transition: all 0.1s ease;
+        }
+
+        .correct {
+            color: #34a853; /* 綠色 */
+        }
+
+        .incorrect {
+            color: #ea4335; /* 紅色 */
+            background-color: #fce8e6;
+            border-radius: 3px;
+        }
+
+        .current {
+            background-color: #d2e3fc;
+            border-radius: 3px;
+        }
+        
+        /* --- 輸入區 --- */
+        #user-input {
+            width: 100%;
+            height: 100px;
+            font-size: 1.5rem;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: none;
+            box-sizing: border-box; /* 確保 padding 不會影響寬度 */
+            font-family: inherit;
+        }
+
+        #user-input:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 5px rgba(26, 115, 232, 0.5);
+        }
+
+        /* --- 按鈕 --- */
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #restart-button {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            font-weight: 500;
+        }
+
+        #restart-button:hover {
+            background-color: #185abc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>中文打字練習</h1>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="label">速度 (字/分)</div>
+                <div id="cpm" class="value">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">準確率 (%)</div>
+                <div id="accuracy" class="value">100</div>
+            </div>
+        </div>
+
+        <div id="text-display"></div>
+        <textarea id="user-input" autofocus></textarea>
+        
+        <div class="controls">
+            <button id="restart-button">重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM 元素 ---
+        const textDisplayEl = document.getElementById('text-display');
+        const userInputEl = document.getElementById('user-input');
+        const restartButtonEl = document.getElementById('restart-button');
+        const cpmEl = document.getElementById('cpm');
+        const accuracyEl = document.getElementById('accuracy');
+
+        // --- 練習句子 ---
+        const sentences = [
+            "這是一個有趣的打字練習工具。",
+            "天下無難事，只怕有心人。",
+            "程式設計改變了我們的世界。",
+            "敏捷的棕色狐狸跳過了懶惰的狗。",
+            "一寸光陰一寸金，寸金難買寸光陰。",
+            "生活就像一盒巧克力，你永遠不知道你會得到什麼。",
+            "保持學習的熱情，是通往成功的唯一途徑。"
+        ];
+
+        // --- 遊戲狀態變數 ---
+        let currentSentence = '';
+        let sentenceChars = [];
+        let startTime = null;
+        let intervalId = null;
+
+        // --- 函數 ---
+
+        /**
+         * 載入一個新的句子並重設所有狀態
+         */
+        function loadNewSentence() {
+            // 停止計時器
+            if (intervalId) clearInterval(intervalId);
+            intervalId = null;
+
+            // 重設狀態
+            startTime = null;
+            userInputEl.value = '';
+            userInputEl.disabled = false;
+            userInputEl.focus();
+            cpmEl.textContent = '0';
+            accuracyEl.textContent = '100';
+
+            // 隨機選擇一個句子
+            const sentenceIndex = Math.floor(Math.random() * sentences.length);
+            currentSentence = sentences[sentenceIndex];
+
+            // 將句子轉換為一個個的 <span> 元素以便單獨上色
+            textDisplayEl.innerHTML = ''; // 清空舊句子
+            sentenceChars = currentSentence.split('').map(char => {
+                const span = document.createElement('span');
+                span.textContent = char;
+                textDisplayEl.appendChild(span);
+                return span;
+            });
+
+            // 標示第一個字為當前位置
+            if (sentenceChars.length > 0) {
+                sentenceChars[0].classList.add('current');
+            }
+        }
+
+        /**
+         * 處理使用者的輸入
+         */
+        function handleInput() {
+            // 如果計時器還沒開始，則在第一次輸入時啟動
+            if (!startTime) {
+                startTime = new Date();
+                // 每秒更新一次統計數據
+                intervalId = setInterval(updateStats, 1000);
+            }
+
+            const userInput = userInputEl.value;
+            const typedChars = userInput.split('');
+            let correctCharsCount = 0;
+
+            // 遍歷句子中的每個字元，比對並更新樣式
+            sentenceChars.forEach((charSpan, index) => {
+                const typedChar = typedChars[index];
+
+                // 移除所有樣式
+                charSpan.classList.remove('correct', 'incorrect', 'current');
+
+                if (typedChar == null) {
+                    // 還沒打到的字
+                } else if (typedChar === charSpan.textContent) {
+                    // 打對了
+                    charSpan.classList.add('correct');
+                    correctCharsCount++;
+                } else {
+                    // 打錯了
+                    charSpan.classList.add('incorrect');
+                }
+            });
+
+            // 更新當前游標位置
+            if (userInput.length < sentenceChars.length) {
+                sentenceChars[userInput.length].classList.add('current');
+            }
+
+            // 如果完成，則停止
+            if (userInput.length === currentSentence.length) {
+                updateStats(); // 最後更新一次
+                clearInterval(intervalId); // 停止計時器
+                userInputEl.disabled = true; // 禁用輸入框
+            }
+        }
+        
+        /**
+         * 更新 CPM 和準確率
+         */
+        function updateStats() {
+            if (!startTime) return;
+
+            const currentTime = new Date();
+            const elapsedTime = (currentTime - startTime) / 1000; // 秒
+            const typedCharsCount = userInputEl.value.length;
+
+            if (typedCharsCount === 0) {
+                cpmEl.textContent = '0';
+                accuracyEl.textContent = '100';
+                return;
+            }
+
+            // 計算正確的字數
+            let correctCharsCount = 0;
+            const userInput = userInputEl.value;
+            for(let i = 0; i < userInput.length; i++) {
+                if(userInput[i] === currentSentence[i]) {
+                    correctCharsCount++;
+                }
+            }
+
+            // 計算 CPM (每分鐘字數)
+            const cpm = elapsedTime > 0 ? Math.round((correctCharsCount / elapsedTime) * 60) : 0;
+            cpmEl.textContent = cpm;
+
+            // 計算準確率
+            const accuracy = Math.round((correctCharsCount / typedCharsCount) * 100);
+            accuracyEl.textContent = accuracy;
+        }
+
+
+        // --- 事件監聽 ---
+        userInputEl.addEventListener('input', handleInput);
+        restartButtonEl.addEventListener('click', loadNewSentence);
+
+        // --- 初始載入 ---
+        loadNewSentence();
+    </script>
+
+</body>
+</html>
