@@ -155,9 +155,14 @@
         </div>
     </div>
     
-    <!-- 練習句子 (從 sentences.js 載入) -->
-    <script src="sentences.js"></script>
     <script>
+        // --- 應用程式狀態 ---
+        let allIdioms = []; // 用來存放所有從 JSON 載入的成語
+        let currentSentence = '';
+        let sentenceChars = [];
+        let startTime = null;
+        let intervalId = null;
+
         // --- DOM 元素 ---
         const textDisplayEl = document.getElementById('text-display');
         const userInputEl = document.getElementById('user-input');
@@ -165,19 +170,49 @@
         const cpmEl = document.getElementById('cpm');
         const accuracyEl = document.getElementById('accuracy');
 
-
-        // --- 遊戲狀態變數 ---
-        let currentSentence = '';
-        let sentenceChars = [];
-        let startTime = null;
-        let intervalId = null;
-
         // --- 函數 ---
 
         /**
-         * 載入一個新的句子並重設所有狀態
+         * 初始化函式：非同步獲取資料，然後載入第一個句子
+         */
+        async function initialize() {
+            // 禁用按鈕和輸入框，直到資料載入完成
+            userInputEl.disabled = true;
+            restartButtonEl.disabled = true;
+            textDisplayEl.textContent = '正在載入成語庫...';
+
+            try {
+                const response = await fetch('idioms.json');
+                if (!response.ok) {
+                    throw new Error(`網路回應錯誤: ${response.statusText}`);
+                }
+                allIdioms = await response.json();
+
+                // 檢查是否成功載入資料
+                if (!allIdioms || allIdioms.length === 0) {
+                    throw new Error('成語庫為空或格式錯誤。');
+                }
+                
+                // 資料已準備好，啟用UI並載入第一個句子
+                userInputEl.disabled = false;
+                restartButtonEl.disabled = false;
+                loadNewSentence();
+
+            } catch (error) {
+                console.error('初始化失敗:', error);
+                textDisplayEl.textContent = '錯誤：無法載入成語庫。';
+            }
+        }
+
+        /**
+         * 從已載入的 allIdioms 陣列中挑選一個新句子並重設狀態
          */
         function loadNewSentence() {
+            if (allIdioms.length === 0) {
+                textDisplayEl.textContent = '錯誤：成語庫未載入。';
+                return;
+            }
+            
             // 停止計時器
             if (intervalId) clearInterval(intervalId);
             intervalId = null;
@@ -190,12 +225,12 @@
             cpmEl.textContent = '0';
             accuracyEl.textContent = '100';
 
-            // 隨機選擇一個句子
-            const sentenceIndex = Math.floor(Math.random() * sentences.length);
-            currentSentence = sentences[sentenceIndex];
+            // 從記憶體中的陣列隨機選擇一個句子
+            const sentenceIndex = Math.floor(Math.random() * allIdioms.length);
+            currentSentence = allIdioms[sentenceIndex];
 
             // 將句子轉換為一個個的 <span> 元素以便單獨上色
-            textDisplayEl.innerHTML = ''; // 清空舊句子
+            textDisplayEl.innerHTML = '';
             sentenceChars = currentSentence.split('').map(char => {
                 const span = document.createElement('span');
                 span.textContent = char;
@@ -213,10 +248,8 @@
          * 處理使用者的輸入
          */
         function handleInput() {
-            // 如果計時器還沒開始，則在第一次輸入時啟動
             if (!startTime) {
                 startTime = new Date();
-                // 每秒更新一次統計數據
                 intervalId = setInterval(updateStats, 1000);
             }
 
@@ -224,35 +257,26 @@
             const typedChars = userInput.split('');
             let correctCharsCount = 0;
 
-            // 遍歷句子中的每個字元，比對並更新樣式
             sentenceChars.forEach((charSpan, index) => {
                 const typedChar = typedChars[index];
-
-                // 移除所有樣式
                 charSpan.classList.remove('correct', 'incorrect', 'current');
-
                 if (typedChar == null) {
-                    // 還沒打到的字
                 } else if (typedChar === charSpan.textContent) {
-                    // 打對了
                     charSpan.classList.add('correct');
                     correctCharsCount++;
                 } else {
-                    // 打錯了
                     charSpan.classList.add('incorrect');
                 }
             });
 
-            // 更新當前游標位置
             if (userInput.length < sentenceChars.length) {
                 sentenceChars[userInput.length].classList.add('current');
             }
 
-            // 如果完成，則停止
             if (userInput.length === currentSentence.length) {
-                updateStats(); // 最後更新一次
-                clearInterval(intervalId); // 停止計時器
-                userInputEl.disabled = true; // 禁用輸入框
+                updateStats();
+                clearInterval(intervalId);
+                userInputEl.disabled = true;
             }
         }
         
@@ -263,7 +287,7 @@
             if (!startTime) return;
 
             const currentTime = new Date();
-            const elapsedTime = (currentTime - startTime) / 1000; // 秒
+            const elapsedTime = (currentTime - startTime) / 1000;
             const typedCharsCount = userInputEl.value.length;
 
             if (typedCharsCount === 0) {
@@ -272,7 +296,6 @@
                 return;
             }
 
-            // 計算正確的字數
             let correctCharsCount = 0;
             const userInput = userInputEl.value;
             for(let i = 0; i < userInput.length; i++) {
@@ -281,11 +304,9 @@
                 }
             }
 
-            // 計算 CPM (每分鐘字數)
             const cpm = elapsedTime > 0 ? Math.round((correctCharsCount / elapsedTime) * 60) : 0;
             cpmEl.textContent = cpm;
 
-            // 計算準確率
             const accuracy = Math.round((correctCharsCount / typedCharsCount) * 100);
             accuracyEl.textContent = accuracy;
         }
@@ -296,7 +317,7 @@
         restartButtonEl.addEventListener('click', loadNewSentence);
 
         // --- 初始載入 ---
-        loadNewSentence();
+        initialize(); // 改為呼叫初始化函式
     </script>
 
 </body>
