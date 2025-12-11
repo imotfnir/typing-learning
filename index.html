@@ -162,6 +162,7 @@
         let sentenceChars = [];
         let startTime = null;
         let intervalId = null;
+        let isComposing = false; // 新增：追蹤輸入法組詞狀態
 
         // --- DOM 元素 ---
         const textDisplayEl = document.getElementById('text-display');
@@ -188,12 +189,10 @@
                 }
                 allIdioms = await response.json();
 
-                // 檢查是否成功載入資料
                 if (!allIdioms || allIdioms.length === 0) {
                     throw new Error('成語庫為空或格式錯誤。');
                 }
                 
-                // 資料已準備好，啟用UI並載入第一個句子
                 userInputEl.disabled = false;
                 restartButtonEl.disabled = false;
                 loadNewSentence();
@@ -213,11 +212,9 @@
                 return;
             }
             
-            // 停止計時器
             if (intervalId) clearInterval(intervalId);
             intervalId = null;
 
-            // 重設狀態
             startTime = null;
             userInputEl.value = '';
             userInputEl.disabled = false;
@@ -225,11 +222,9 @@
             cpmEl.textContent = '0';
             accuracyEl.textContent = '100';
 
-            // 從記憶體中的陣列隨機選擇一個句子
             const sentenceIndex = Math.floor(Math.random() * allIdioms.length);
             currentSentence = allIdioms[sentenceIndex];
 
-            // 將句子轉換為一個個的 <span> 元素以便單獨上色
             textDisplayEl.innerHTML = '';
             sentenceChars = currentSentence.split('').map(char => {
                 const span = document.createElement('span');
@@ -238,7 +233,6 @@
                 return span;
             });
 
-            // 標示第一個字為當前位置
             if (sentenceChars.length > 0) {
                 sentenceChars[0].classList.add('current');
             }
@@ -248,6 +242,9 @@
          * 處理使用者的輸入
          */
         function handleInput() {
+            // 新增：如果正在使用輸入法組詞，則暫不處理
+            if (isComposing) return;
+
             if (!startTime) {
                 startTime = new Date();
                 intervalId = setInterval(updateStats, 1000);
@@ -273,6 +270,7 @@
                 sentenceChars[userInput.length].classList.add('current');
             }
 
+            // 修改：只有在字數足夠且使用者不在組詞時才結束
             if (userInput.length === currentSentence.length) {
                 updateStats();
                 clearInterval(intervalId);
@@ -281,7 +279,7 @@
         }
         
         /**
-         * 更新 CPM 和準確率
+         * 更新 CPM 和準確率 (此函式無需變更)
          */
         function updateStats() {
             if (!startTime) return;
@@ -315,6 +313,15 @@
         // --- 事件監聽 ---
         userInputEl.addEventListener('input', handleInput);
         restartButtonEl.addEventListener('click', loadNewSentence);
+        
+        // 新增：監聽輸入法組詞事件
+        userInputEl.addEventListener('compositionstart', () => { isComposing = true; });
+        userInputEl.addEventListener('compositionend', () => {
+            isComposing = false;
+            // 組詞結束後，手動觸發一次輸入處理，以確保立即更新狀態
+            handleInput();
+        });
+
 
         // --- 初始載入 ---
         initialize(); // 改為呼叫初始化函式
