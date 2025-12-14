@@ -153,16 +153,24 @@
         <div class="controls">
             <button id="restart-button">重新開始</button>
         </div>
+
+        <!-- 新增的反查字典區塊 -->
+        <div class="lookup-container" style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+            <h2>大新倉頡反查字典</h2>
+            <input type="text" id="lookup-input" placeholder="在這裡輸入一個想查詢的中文字..." style="width: 100%; font-size: 1.5rem; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+            <div id="lookup-result" style="font-size: 2rem; font-weight: bold; color: #1a73e8; margin-top: 15px; min-height: 40px; letter-spacing: 2px;"></div>
+        </div>
     </div>
     
     <script>
         // --- 應用程式狀態 ---
-        let allIdioms = []; // 用來存放所有從 JSON 載入的成語
+        let allSentences = []; // 改名以更符合內容
+        let newcjMap = {}; // 存放倉頡碼表
         let currentSentence = '';
         let sentenceChars = [];
         let startTime = null;
         let intervalId = null;
-        let isComposing = false; // 新增：追蹤輸入法組詞狀態
+        let isComposing = false;
 
         // --- DOM 元素 ---
         const textDisplayEl = document.getElementById('text-display');
@@ -170,45 +178,56 @@
         const restartButtonEl = document.getElementById('restart-button');
         const cpmEl = document.getElementById('cpm');
         const accuracyEl = document.getElementById('accuracy');
+        // 新增反查功能的 DOM 元素
+        const lookupInputEl = document.getElementById('lookup-input');
+        const lookupResultEl = document.getElementById('lookup-result');
 
         // --- 函數 ---
 
         /**
-         * 初始化函式：非同步獲取資料，然後載入第一個句子
+         * 初始化函式：使用 Promise.all 同時非同步獲取多個資料檔
          */
         async function initialize() {
-            // 禁用按鈕和輸入框，直到資料載入完成
             userInputEl.disabled = true;
             restartButtonEl.disabled = true;
-            textDisplayEl.textContent = '正在載入成語庫...';
+            lookupInputEl.disabled = true;
+            textDisplayEl.textContent = '正在載入資料...';
 
             try {
-                const response = await fetch('corpus.json');
-                if (!response.ok) {
-                    throw new Error(`網路回應錯誤: ${response.statusText}`);
-                }
-                allIdioms = await response.json();
+                // 使用 Promise.all 來並行載入多個檔案，效率更高
+                const [corpusResponse, newcjResponse] = await Promise.all([
+                    fetch('corpus.json'),
+                    fetch('newcj.json')
+                ]);
 
-                if (!allIdioms || allIdioms.length === 0) {
-                    throw new Error('成語庫為空或格式錯誤。');
-                }
+                if (!corpusResponse.ok) throw new Error(`無法載入 corpus.json: ${corpusResponse.statusText}`);
+                if (!newcjResponse.ok) throw new Error(`無法載入 newcj.json: ${newcjResponse.statusText}`);
+
+                allSentences = await corpusResponse.json();
+                newcjMap = await newcjResponse.json();
+
+                if (!allSentences || allSentences.length === 0) throw new Error('語料庫為空或格式錯誤。');
+                if (!newcjMap || Object.keys(newcjMap).length === 0) throw new Error('倉頡碼表為空或格式錯誤。');
                 
+                // 資料已準備好，啟用所有UI
                 userInputEl.disabled = false;
                 restartButtonEl.disabled = false;
+                lookupInputEl.disabled = false;
                 loadNewSentence();
+                lookupInputEl.placeholder = "在這裡輸入一個想查詢的中文字...";
 
             } catch (error) {
                 console.error('初始化失敗:', error);
-                textDisplayEl.textContent = '錯誤：無法載入成語庫。';
+                textDisplayEl.textContent = `錯誤：${error.message}`;
             }
         }
 
         /**
-         * 從已載入的 allIdioms 陣列中挑選一個新句子並重設狀態
+         * 載入一個新句子
          */
         function loadNewSentence() {
-            if (allIdioms.length === 0) {
-                textDisplayEl.textContent = '錯誤：成語庫未載入。';
+            if (allSentences.length === 0) {
+                textDisplayEl.textContent = '錯誤：語料庫未載入。';
                 return;
             }
             
@@ -222,8 +241,8 @@
             cpmEl.textContent = '0';
             accuracyEl.textContent = '100';
 
-            const sentenceIndex = Math.floor(Math.random() * allIdioms.length);
-            currentSentence = allIdioms[sentenceIndex];
+            const sentenceIndex = Math.floor(Math.random() * allSentences.length);
+            currentSentence = allSentences[sentenceIndex];
 
             textDisplayEl.innerHTML = '';
             sentenceChars = currentSentence.split('').map(char => {
@@ -239,38 +258,28 @@
         }
 
         /**
-         * 處理使用者的輸入
+         * 處理打字練習的輸入
          */
         function handleInput() {
-            // 新增：如果正在使用輸入法組詞，則暫不處理
             if (isComposing) return;
-
             if (!startTime) {
                 startTime = new Date();
                 intervalId = setInterval(updateStats, 1000);
             }
-
             const userInput = userInputEl.value;
-            const typedChars = userInput.split('');
-            let correctCharsCount = 0;
-
             sentenceChars.forEach((charSpan, index) => {
-                const typedChar = typedChars[index];
+                const typedChar = userInput[index];
                 charSpan.classList.remove('correct', 'incorrect', 'current');
                 if (typedChar == null) {
                 } else if (typedChar === charSpan.textContent) {
                     charSpan.classList.add('correct');
-                    correctCharsCount++;
                 } else {
                     charSpan.classList.add('incorrect');
                 }
             });
-
             if (userInput.length < sentenceChars.length) {
                 sentenceChars[userInput.length].classList.add('current');
             }
-
-            // 修改：只有在字數足夠且使用者不在組詞時才結束
             if (userInput.length === currentSentence.length) {
                 updateStats();
                 clearInterval(intervalId);
@@ -279,52 +288,64 @@
         }
         
         /**
-         * 更新 CPM 和準確率 (此函式無需變更)
+         * 更新打字統計數據
          */
         function updateStats() {
             if (!startTime) return;
-
             const currentTime = new Date();
             const elapsedTime = (currentTime - startTime) / 1000;
             const typedCharsCount = userInputEl.value.length;
-
             if (typedCharsCount === 0) {
                 cpmEl.textContent = '0';
                 accuracyEl.textContent = '100';
                 return;
             }
-
             let correctCharsCount = 0;
-            const userInput = userInputEl.value;
-            for(let i = 0; i < userInput.length; i++) {
-                if(userInput[i] === currentSentence[i]) {
+            for(let i = 0; i < typedCharsCount; i++) {
+                if(userInputEl.value[i] === currentSentence[i]) {
                     correctCharsCount++;
                 }
             }
-
             const cpm = elapsedTime > 0 ? Math.round((correctCharsCount / elapsedTime) * 60) : 0;
             cpmEl.textContent = cpm;
-
             const accuracy = Math.round((correctCharsCount / typedCharsCount) * 100);
             accuracyEl.textContent = accuracy;
         }
 
+        /**
+         * 新增：處理反查字典的輸入
+         */
+        function handleLookup() {
+            const query = lookupInputEl.value;
+            if (!query) {
+                lookupResultEl.textContent = '';
+                return;
+            }
+            // 我們只查詢最後一個輸入的字元
+            const charToLookup = query.slice(-1);
+            const codes = newcjMap[charToLookup];
+
+            if (codes && codes.length > 0) {
+                // 如果找到，將碼陣列用空格連接成一個字串並顯示
+                lookupResultEl.textContent = codes.join(' ');
+            } else {
+                lookupResultEl.textContent = '查無此字';
+            }
+        }
 
         // --- 事件監聽 ---
         userInputEl.addEventListener('input', handleInput);
         restartButtonEl.addEventListener('click', loadNewSentence);
+        lookupInputEl.addEventListener('input', handleLookup); // 新增
         
-        // 新增：監聽輸入法組詞事件
         userInputEl.addEventListener('compositionstart', () => { isComposing = true; });
         userInputEl.addEventListener('compositionend', () => {
             isComposing = false;
-            // 組詞結束後，手動觸發一次輸入處理，以確保立即更新狀態
             handleInput();
         });
 
-
         // --- 初始載入 ---
-        initialize(); // 改為呼叫初始化函式
+        initialize();
     </script>
 
 </body>
