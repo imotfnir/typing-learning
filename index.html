@@ -183,7 +183,7 @@
             textDisplayEl.textContent = '正在載入成語庫...';
 
             try {
-                const response = await fetch('idioms.json');
+                const response = await fetch('corpus.json');
                 if (!response.ok) {
                     throw new Error(`網路回應錯誤: ${response.statusText}`);
                 }
