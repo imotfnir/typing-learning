@@ -148,24 +148,21 @@
         </div>
 
         <div id="text-display"></div>
-        <textarea id="user-input" autofocus></textarea>
+        
+        <!-- 新的即時拆碼提示區 -->
+        <div id="code-display" style="font-size: 2rem; font-weight: bold; color: #1a73e8; margin-top: 10px; min-height: 40px; text-align: center; letter-spacing: 3px; background-color: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
+
+        <textarea id="user-input" autofocus style="margin-top: 20px;"></textarea>
         
         <div class="controls">
             <button id="restart-button">重新開始</button>
-        </div>
-
-        <!-- 新增的反查字典區塊 -->
-        <div class="lookup-container" style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
-            <h2>大新倉頡反查字典</h2>
-            <input type="text" id="lookup-input" placeholder="在這裡輸入一個想查詢的中文字..." style="width: 100%; font-size: 1.5rem; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-            <div id="lookup-result" style="font-size: 2rem; font-weight: bold; color: #1a73e8; margin-top: 15px; min-height: 40px; letter-spacing: 2px;"></div>
         </div>
     </div>
     
     <script>
         // --- 應用程式狀態 ---
-        let allSentences = []; // 改名以更符合內容
-        let newcjMap = {}; // 存放倉頡碼表
+        let allSentences = [];
+        let newcjMap = {};
         let currentSentence = '';
         let sentenceChars = [];
         let startTime = null;
@@ -178,23 +175,17 @@
         const restartButtonEl = document.getElementById('restart-button');
         const cpmEl = document.getElementById('cpm');
         const accuracyEl = document.getElementById('accuracy');
-        // 新增反查功能的 DOM 元素
-        const lookupInputEl = document.getElementById('lookup-input');
-        const lookupResultEl = document.getElementById('lookup-result');
+        const codeDisplayEl = document.getElementById('code-display'); // 新的拆碼顯示區
 
         // --- 函數 ---
 
-        /**
-         * 初始化函式：使用 Promise.all 同時非同步獲取多個資料檔
-         */
         async function initialize() {
             userInputEl.disabled = true;
             restartButtonEl.disabled = true;
-            lookupInputEl.disabled = true;
             textDisplayEl.textContent = '正在載入資料...';
+            codeDisplayEl.textContent = '...';
 
             try {
-                // 使用 Promise.all 來並行載入多個檔案，效率更高
                 const [corpusResponse, newcjResponse] = await Promise.all([
                     fetch('corpus.json'),
                     fetch('newcj.json')
@@ -206,34 +197,41 @@
                 allSentences = await corpusResponse.json();
                 newcjMap = await newcjResponse.json();
 
-                if (!allSentences || allSentences.length === 0) throw new Error('語料庫為空或格式錯誤。');
-                if (!newcjMap || Object.keys(newcjMap).length === 0) throw new Error('倉頡碼表為空或格式錯誤。');
+                if (!allSentences || allSentences.length === 0) throw new Error('語料庫為空。');
+                if (!newcjMap || Object.keys(newcjMap).length === 0) throw new Error('倉頡碼表為空。');
                 
-                // 資料已準備好，啟用所有UI
                 userInputEl.disabled = false;
                 restartButtonEl.disabled = false;
-                lookupInputEl.disabled = false;
                 loadNewSentence();
-                lookupInputEl.placeholder = "在這裡輸入一個想查詢的中文字...";
 
             } catch (error) {
                 console.error('初始化失敗:', error);
                 textDisplayEl.textContent = `錯誤：${error.message}`;
+                codeDisplayEl.textContent = '載入失敗';
             }
         }
 
         /**
-         * 載入一個新句子
+         * 更新拆碼提示
          */
-        function loadNewSentence() {
-            if (allSentences.length === 0) {
-                textDisplayEl.textContent = '錯誤：語料庫未載入。';
+        function updateCodeDisplay(char) {
+            if (!char) {
+                codeDisplayEl.textContent = '';
                 return;
             }
+            const codes = newcjMap[char];
+            if (codes && codes.length > 0) {
+                codeDisplayEl.textContent = codes.join(' ');
+            } else {
+                codeDisplayEl.textContent = '查無此字';
+            }
+        }
+
+        function loadNewSentence() {
+            if (allSentences.length === 0) return;
             
             if (intervalId) clearInterval(intervalId);
             intervalId = null;
-
             startTime = null;
             userInputEl.value = '';
             userInputEl.disabled = false;
@@ -254,12 +252,12 @@
 
             if (sentenceChars.length > 0) {
                 sentenceChars[0].classList.add('current');
+                updateCodeDisplay(currentSentence[0]); // 自動顯示第一個字的碼
+            } else {
+                updateCodeDisplay(null); // 清空拆碼區
             }
         }
 
-        /**
-         * 處理打字練習的輸入
-         */
         function handleInput() {
             if (isComposing) return;
             if (!startTime) {
@@ -277,9 +275,15 @@
                     charSpan.classList.add('incorrect');
                 }
             });
-            if (userInput.length < sentenceChars.length) {
-                sentenceChars[userInput.length].classList.add('current');
+
+            const nextCharIndex = userInput.length;
+            if (nextCharIndex < sentenceChars.length) {
+                sentenceChars[nextCharIndex].classList.add('current');
+                updateCodeDisplay(currentSentence[nextCharIndex]); // 更新為下一個字的碼
+            } else {
+                updateCodeDisplay(null); // 完成句子，清空拆碼區
             }
+
             if (userInput.length === currentSentence.length) {
                 updateStats();
                 clearInterval(intervalId);
@@ -287,9 +291,6 @@
             }
         }
         
-        /**
-         * 更新打字統計數據
-         */
         function updateStats() {
             if (!startTime) return;
             const currentTime = new Date();
@@ -312,31 +313,9 @@
             accuracyEl.textContent = accuracy;
         }
 
-        /**
-         * 新增：處理反查字典的輸入
-         */
-        function handleLookup() {
-            const query = lookupInputEl.value;
-            if (!query) {
-                lookupResultEl.textContent = '';
-                return;
-            }
-            // 我們只查詢最後一個輸入的字元
-            const charToLookup = query.slice(-1);
-            const codes = newcjMap[charToLookup];
-
-            if (codes && codes.length > 0) {
-                // 如果找到，將碼陣列用空格連接成一個字串並顯示
-                lookupResultEl.textContent = codes.join(' ');
-            } else {
-                lookupResultEl.textContent = '查無此字';
-            }
-        }
-
         // --- 事件監聽 ---
         userInputEl.addEventListener('input', handleInput);
         restartButtonEl.addEventListener('click', loadNewSentence);
-        lookupInputEl.addEventListener('input', handleLookup); // 新增
         
         userInputEl.addEventListener('compositionstart', () => { isComposing = true; });
         userInputEl.addEventListener('compositionend', () => {
