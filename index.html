@@ -5,30 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文打字練習</title>
     <style>
+        /* --- 顏色變數定義 --- */
+        :root {
+            --bg-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-color: #333;
+            --secondary-text-color: #666;
+            --primary-color: #1a73e8;
+            --primary-hover-color: #185abc;
+            --border-color: #ddd;
+            --text-display-bg: #fafafa;
+            --code-display-bg: #f8f9fa;
+            --correct-color: #34a853;
+            --incorrect-color: #ea4335;
+            --incorrect-bg: #fce8e6;
+            --current-bg: #d2e3fc;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --input-focus-shadow: rgba(26, 115, 232, 0.5);
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --secondary-text-color: #a0a0a0;
+            --primary-color: #bb86fc;
+            --primary-hover-color: #a56ef0;
+            --border-color: #444;
+            --text-display-bg: #2a2a2a;
+            --code-display-bg: #333333;
+            --correct-color: #4caf50;
+            --incorrect-color: #f44336;
+            --incorrect-bg: #5d3a3a;
+            --current-bg: #555;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --input-focus-shadow: rgba(187, 134, 252, 0.5);
+        }
+
         /* --- 基本樣式 --- */
         body {
-            background-color: #f0f2f5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, "Helvetica Neue", Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            color: #333;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
+            position: relative; /* 為了主題切換按鈕的定位 */
             width: 800px;
             max-width: 90%;
             padding: 30px;
-            background-color: #ffffff;
+            background-color: var(--container-bg);
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px var(--shadow-color);
+            transition: background-color 0.3s;
         }
 
         h1 {
             text-align: center;
-            color: #1a73e8;
+            color: var(--primary-color);
             margin-bottom: 20px;
             font-weight: 600;
         }
@@ -41,99 +81,110 @@
             font-size: 1.2rem;
         }
 
-        .stat-item {
-            text-align: center;
-        }
-
         .stat-item .label {
             font-size: 0.9rem;
-            color: #666;
+            color: var(--secondary-text-color);
         }
 
         .stat-item .value {
             font-size: 2rem;
             font-weight: bold;
-            color: #1a73e8;
+            color: var(--primary-color);
         }
 
-        /* --- 文本顯示區 --- */
+        /* --- 文本與拆碼區 --- */
         #text-display {
             font-size: 1.8rem;
             letter-spacing: 4px;
             line-height: 1.8;
-            margin-bottom: 20px;
             padding: 20px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            background-color: #fafafa;
+            background-color: var(--text-display-bg);
             text-align: justify;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        #code-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-top: 10px;
+            min-height: 40px;
+            text-align: center;
+            letter-spacing: 3px;
+            background-color: var(--code-display-bg);
+            padding: 10px;
+            border-radius: 8px;
+            transition: background-color 0.3s;
         }
 
         /* --- 字元樣式 --- */
         #text-display span {
             transition: all 0.1s ease;
         }
-
-        .correct {
-            color: #34a853; /* 綠色 */
-        }
-
+        .correct { color: var(--correct-color); }
         .incorrect {
-            color: #ea4335; /* 紅色 */
-            background-color: #fce8e6;
+            color: var(--incorrect-color);
+            background-color: var(--incorrect-bg);
             border-radius: 3px;
         }
-
-        .current {
-            background-color: #d2e3fc;
-            border-radius: 3px;
-        }
+        .current { background-color: var(--current-bg); border-radius: 3px; }
         
-        /* --- 輸入區 --- */
+        /* --- 輸入與控制區 --- */
         #user-input {
             width: 100%;
             height: 100px;
             font-size: 1.5rem;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             resize: none;
-            box-sizing: border-box; /* 確保 padding 不會影響寬度 */
+            box-sizing: border-box;
             font-family: inherit;
+            background-color: var(--container-bg);
+            color: var(--text-color);
+            margin-top: 20px;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
         }
-
         #user-input:focus {
             outline: none;
-            border-color: #1a73e8;
-            box-shadow: 0 0 5px rgba(26, 115, 232, 0.5);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 5px var(--input-focus-shadow);
         }
-
-        /* --- 按鈕 --- */
         .controls {
             text-align: center;
             margin-top: 20px;
         }
-
         #restart-button {
             padding: 12px 30px;
             font-size: 1.1rem;
             cursor: pointer;
-            background-color: #1a73e8;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             border-radius: 8px;
             transition: background-color 0.3s ease;
             font-weight: 500;
         }
-
         #restart-button:hover {
-            background-color: #185abc;
+            background-color: var(--primary-hover-color);
+        }
+        #theme-toggle-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <button id="theme-toggle-button">🌙</button>
         <h1>中文打字練習</h1>
 
         <div class="stats">
@@ -148,10 +199,7 @@
         </div>
 
         <div id="text-display"></div>
-        
-        <!-- 新的即時拆碼提示區 -->
-        <div id="code-display" style="font-size: 2rem; font-weight: bold; color: #1a73e8; margin-top: 10px; min-height: 40px; text-align: center; letter-spacing: 3px; background-color: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
-
+        <div id="code-display"></div>
         <textarea id="user-input" autofocus style="margin-top: 20px;"></textarea>
         
         <div class="controls">
@@ -175,11 +223,19 @@
         const restartButtonEl = document.getElementById('restart-button');
         const cpmEl = document.getElementById('cpm');
         const accuracyEl = document.getElementById('accuracy');
-        const codeDisplayEl = document.getElementById('code-display'); // 新的拆碼顯示區
+        const codeDisplayEl = document.getElementById('code-display');
+        const themeToggleButtonEl = document.getElementById('theme-toggle-button');
 
         // --- 函數 ---
 
         async function initialize() {
+            // 主題初始化
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggleButtonEl.textContent = '☀️';
+            }
+
             userInputEl.disabled = true;
             restartButtonEl.disabled = true;
             textDisplayEl.textContent = '正在載入資料...';
@@ -211,9 +267,6 @@
             }
         }
 
-        /**
-         * 更新拆碼提示
-         */
         function updateCodeDisplay(char) {
             if (!char) {
                 codeDisplayEl.textContent = '';
@@ -252,9 +305,9 @@
 
             if (sentenceChars.length > 0) {
                 sentenceChars[0].classList.add('current');
-                updateCodeDisplay(currentSentence[0]); // 自動顯示第一個字的碼
+                updateCodeDisplay(currentSentence[0]);
             } else {
-                updateCodeDisplay(null); // 清空拆碼區
+                updateCodeDisplay(null);
             }
         }
 
@@ -279,9 +332,9 @@
             const nextCharIndex = userInput.length;
             if (nextCharIndex < sentenceChars.length) {
                 sentenceChars[nextCharIndex].classList.add('current');
-                updateCodeDisplay(currentSentence[nextCharIndex]); // 更新為下一個字的碼
+                updateCodeDisplay(currentSentence[nextCharIndex]);
             } else {
-                updateCodeDisplay(null); // 完成句子，清空拆碼區
+                updateCodeDisplay(null);
             }
 
             if (userInput.length === currentSentence.length) {
@@ -313,9 +366,17 @@
             accuracyEl.textContent = accuracy;
         }
 
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            themeToggleButtonEl.textContent = isDarkMode ? '☀️' : '🌙';
+        }
+
         // --- 事件監聽 ---
         userInputEl.addEventListener('input', handleInput);
         restartButtonEl.addEventListener('click', loadNewSentence);
+        themeToggleButtonEl.addEventListener('click', toggleTheme);
         
         userInputEl.addEventListener('compositionstart', () => { isComposing = true; });
         userInputEl.addEventListener('compositionend', () => {
