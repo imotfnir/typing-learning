@@ -42,7 +42,7 @@
             --input-focus-shadow: rgba(187, 134, 252, 0.5);
         }
 
-        /* --- 基本樣式 --- */
+        /* --- 整體佈局 --- */
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
@@ -52,13 +52,21 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
             transition: background-color 0.3s, color 0.3s;
         }
 
-        .container {
-            position: relative; /* 為了主題切換按鈕的定位 */
-            width: 800px;
-            max-width: 90%;
+        .main-wrapper {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            max-width: 1200px;
+            align-items: flex-start;
+        }
+
+        .panel {
+            position: relative;
             padding: 30px;
             background-color: var(--container-bg);
             border-radius: 12px;
@@ -66,144 +74,79 @@
             transition: background-color 0.3s;
         }
 
-        h1 {
+        .practice-panel {
+            flex: 2; /* 佔據 2/3 寬度 */
+        }
+
+        .lookup-panel {
+            flex: 1; /* 佔據 1/3 寬度 */
+            position: sticky; /* 讓查詢器在捲動時固定 */
+            top: 20px;
+        }
+
+        h1, h2 {
             text-align: center;
             color: var(--primary-color);
-            margin-bottom: 20px;
+            margin-top: 0;
             font-weight: 600;
         }
+        h1 { margin-bottom: 20px; }
+        h2 { margin-bottom: 15px; font-size: 1.5rem; }
 
         /* --- 統計數據區 --- */
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 25px;
-            font-size: 1.2rem;
-        }
-
-        .stat-item .label {
-            font-size: 0.9rem;
-            color: var(--secondary-text-color);
-        }
-
-        .stat-item .value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 25px; font-size: 1.2rem; }
+        .stat-item .label { font-size: 0.9rem; color: var(--secondary-text-color); }
+        .stat-item .value { font-size: 2rem; font-weight: bold; color: var(--primary-color); }
 
         /* --- 文本與拆碼區 --- */
-        #text-display {
-            font-size: 1.8rem;
-            letter-spacing: 4px;
-            line-height: 1.8;
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: var(--text-display-bg);
-            text-align: justify;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        #code-display {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-top: 10px;
-            min-height: 40px;
-            text-align: center;
-            letter-spacing: 3px;
-            background-color: var(--code-display-bg);
-            padding: 10px;
-            border-radius: 8px;
-            transition: background-color 0.3s;
-        }
+        #text-display { font-size: 1.8rem; letter-spacing: 4px; line-height: 1.8; padding: 20px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--text-display-bg); text-align: justify; transition: background-color 0.3s, border-color 0.3s; }
+        #code-display { font-size: 2rem; font-weight: bold; color: var(--primary-color); margin-top: 10px; min-height: 40px; text-align: center; letter-spacing: 3px; background-color: var(--code-display-bg); padding: 10px; border-radius: 8px; transition: background-color 0.3s; }
 
         /* --- 字元樣式 --- */
-        #text-display span {
-            transition: all 0.1s ease;
-        }
+        #text-display span { transition: all 0.1s ease; }
         .correct { color: var(--correct-color); }
-        .incorrect {
-            color: var(--incorrect-color);
-            background-color: var(--incorrect-bg);
-            border-radius: 3px;
-        }
+        .incorrect { color: var(--incorrect-color); background-color: var(--incorrect-bg); border-radius: 3px; }
         .current { background-color: var(--current-bg); border-radius: 3px; }
         
         /* --- 輸入與控制區 --- */
-        #user-input {
-            width: 100%;
-            height: 100px;
-            font-size: 1.5rem;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            resize: none;
-            box-sizing: border-box;
-            font-family: inherit;
-            background-color: var(--container-bg);
-            color: var(--text-color);
-            margin-top: 20px;
-            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-        }
-        #user-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 5px var(--input-focus-shadow);
-        }
-        .controls {
-            text-align: center;
-            margin-top: 20px;
-        }
-        #restart-button {
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            transition: background-color 0.3s ease;
-            font-weight: 500;
-        }
-        #restart-button:hover {
-            background-color: var(--primary-hover-color);
-        }
-        #theme-toggle-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1.5rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 5px;
-        }
+        .input-base { width: 100%; font-size: 1.5rem; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+        .input-base:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 5px var(--input-focus-shadow); }
+        #user-input { height: 100px; resize: none; margin-top: 20px; }
+        .controls { text-align: center; margin-top: 20px; }
+        #restart-button { padding: 12px 30px; font-size: 1.1rem; cursor: pointer; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; transition: background-color 0.3s ease; font-weight: 500; }
+        #restart-button:hover { background-color: var(--primary-hover-color); }
+        #theme-toggle-button { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; background: none; border: none; cursor: pointer; padding: 5px; }
+
+        /* --- 獨立查詢器樣式 --- */
+        #lookup-result { font-size: 2rem; font-weight: bold; color: var(--primary-color); margin-top: 15px; min-height: 40px; letter-spacing: 2px; text-align: center; }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <button id="theme-toggle-button">🌙</button>
-        <h1>中文打字練習</h1>
+    <div class="main-wrapper">
+        <div class="panel practice-panel">
+            <button id="theme-toggle-button">🌙</button>
+            <h1>中文打字練習</h1>
 
-        <div class="stats">
-            <div class="stat-item">
-                <div class="label">速度 (字/分)</div>
-                <div id="cpm" class="value">0</div>
+            <div class="stats">
+                <div class="stat-item"><div class="label">速度 (字/分)</div><div id="cpm" class="value">0</div></div>
+                <div class="stat-item"><div class="label">準確率 (%)</div><div id="accuracy" class="value">100</div></div>
             </div>
-            <div class="stat-item">
-                <div class="label">準確率 (%)</div>
-                <div id="accuracy" class="value">100</div>
+
+            <div id="text-display"></div>
+            <div id="code-display"></div>
+            <textarea id="user-input" class="input-base" autofocus></textarea>
+            
+            <div class="controls">
+                <button id="restart-button">重新開始</button>
             </div>
         </div>
 
-        <div id="text-display"></div>
-        <div id="code-display"></div>
-        <textarea id="user-input" autofocus style="margin-top: 20px;"></textarea>
-        
-        <div class="controls">
-            <button id="restart-button">重新開始</button>
+        <div class="panel lookup-panel">
+            <h2>大新倉頡反查</h2>
+            <input type="text" id="lookup-input" class="input-base" placeholder="輸入單一中文字...">
+            <div id="lookup-result"></div>
         </div>
     </div>
     
@@ -225,6 +168,8 @@
         const accuracyEl = document.getElementById('accuracy');
         const codeDisplayEl = document.getElementById('code-display');
         const themeToggleButtonEl = document.getElementById('theme-toggle-button');
+        const lookupInputEl = document.getElementById('lookup-input');
+        const lookupResultEl = document.getElementById('lookup-result');
 
         // --- 函數 ---
 
@@ -236,8 +181,10 @@
                 themeToggleButtonEl.textContent = '☀️';
             }
 
+            // 禁用所有互動元件
             userInputEl.disabled = true;
             restartButtonEl.disabled = true;
+            lookupInputEl.disabled = true;
             textDisplayEl.textContent = '正在載入資料...';
             codeDisplayEl.textContent = '...';
 
@@ -256,8 +203,11 @@
                 if (!allSentences || allSentences.length === 0) throw new Error('語料庫為空。');
                 if (!newcjMap || Object.keys(newcjMap).length === 0) throw new Error('倉頡碼表為空。');
                 
+                // 資料已準備好，啟用所有UI
                 userInputEl.disabled = false;
                 restartButtonEl.disabled = false;
+                lookupInputEl.disabled = false;
+                lookupInputEl.placeholder = "輸入單一中文字...";
                 loadNewSentence();
 
             } catch (error) {
@@ -311,7 +261,7 @@
             }
         }
 
-        function handleInput() {
+        function handleTypingInput() {
             if (isComposing) return;
             if (!startTime) {
                 startTime = new Date();
@@ -321,12 +271,9 @@
             sentenceChars.forEach((charSpan, index) => {
                 const typedChar = userInput[index];
                 charSpan.classList.remove('correct', 'incorrect', 'current');
-                if (typedChar == null) {
-                } else if (typedChar === charSpan.textContent) {
-                    charSpan.classList.add('correct');
-                } else {
-                    charSpan.classList.add('incorrect');
-                }
+                if (typedChar == null) {} 
+                else if (typedChar === charSpan.textContent) { charSpan.classList.add('correct'); } 
+                else { charSpan.classList.add('incorrect'); }
             });
 
             const nextCharIndex = userInput.length;
@@ -349,21 +296,31 @@
             const currentTime = new Date();
             const elapsedTime = (currentTime - startTime) / 1000;
             const typedCharsCount = userInputEl.value.length;
-            if (typedCharsCount === 0) {
-                cpmEl.textContent = '0';
-                accuracyEl.textContent = '100';
-                return;
-            }
+            if (typedCharsCount === 0) { cpmEl.textContent = '0'; accuracyEl.textContent = '100'; return; }
+            
             let correctCharsCount = 0;
             for(let i = 0; i < typedCharsCount; i++) {
-                if(userInputEl.value[i] === currentSentence[i]) {
-                    correctCharsCount++;
-                }
+                if(userInputEl.value[i] === currentSentence[i]) correctCharsCount++;
             }
             const cpm = elapsedTime > 0 ? Math.round((correctCharsCount / elapsedTime) * 60) : 0;
             cpmEl.textContent = cpm;
             const accuracy = Math.round((correctCharsCount / typedCharsCount) * 100);
             accuracyEl.textContent = accuracy;
+        }
+
+        function handleLookupInput() {
+            const query = lookupInputEl.value;
+            if (!query) {
+                lookupResultEl.textContent = '';
+                return;
+            }
+            const charToLookup = query.slice(-1);
+            const codes = newcjMap[charToLookup];
+            if (codes && codes.length > 0) {
+                lookupResultEl.textContent = codes.join(' ');
+            } else {
+                lookupResultEl.textContent = '查無此字';
+            }
         }
 
         function toggleTheme() {
@@ -374,14 +331,15 @@
         }
 
         // --- 事件監聽 ---
-        userInputEl.addEventListener('input', handleInput);
+        userInputEl.addEventListener('input', handleTypingInput);
         restartButtonEl.addEventListener('click', loadNewSentence);
         themeToggleButtonEl.addEventListener('click', toggleTheme);
+        lookupInputEl.addEventListener('input', handleLookupInput);
         
         userInputEl.addEventListener('compositionstart', () => { isComposing = true; });
         userInputEl.addEventListener('compositionend', () => {
             isComposing = false;
-            handleInput();
+            handleTypingInput();
         });
 
         // --- 初始載入 ---
